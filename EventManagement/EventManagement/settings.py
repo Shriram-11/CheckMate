@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-2d1#vd+=ig6)vj8wxsqp@6w$(6xi-)ja2y-%b&cd%0swj41(gt
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['checkmate.onrender.com']
+ALLOWED_HOSTS = ['checkmate-lmc4.onrender.com']
 
 # Application definition
 INSTALLED_APPS = [
