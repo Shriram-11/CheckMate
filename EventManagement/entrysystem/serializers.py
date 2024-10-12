@@ -1,44 +1,77 @@
 from rest_framework import serializers
-import hashlib
 from pymongo import MongoClient
 from datetime import datetime
-
-# MongoDB Configuration
-MONGO_URI = "mongodb://localhost:27017/"
+from bson import ObjectId
+# MongoDB Client Configuration
+MONGO_URI = "mongodb+srv://nshriram1326:vxdQ7yYDz74A9TMR@cluster0.usl45.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 client = MongoClient(MONGO_URI)
-db = client.eventdb  # Replace 'eventdb' with your database name
+db = client.checkmate
+
+# User Serializer
+
+
+class ProfileDetailsSerializer(serializers.Serializer):
+    name = serializers.CharField(required=True, max_length=100)
+    college = serializers.CharField(required=False, allow_blank=True)
+    phoneNumber = serializers.CharField(required=False, allow_blank=True)
+    imageURL = serializers.URLField(required=False, allow_blank=True)
 
 
 class UserSerializer(serializers.Serializer):
+    _id = serializers.CharField(read_only=True)  # MongoDB's _id as read-only
     email = serializers.EmailField(required=True)
-    # write_only to not expose passwords
-    password = serializers.CharField(required=True, write_only=True)
-    contact = serializers.CharField(required=True)
-    name = serializers.CharField(required=True)
-    college_name = serializers.CharField(required=True)
+    firebaseUID = serializers.CharField(required=True, max_length=100)
+    profileDetails = ProfileDetailsSerializer(required=True)
+    paymentStatus = serializers.BooleanField(default=False)
 
     def create(self, validated_data):
-        # Hash the password using SHA256
-        hashed_password = hashlib.sha256(
-            validated_data['password'].encode()).hexdigest()
-
-        # Generate a unique ticket_id using user information
-        unique_string = f"{validated_data['name']}{validated_data['email']}{
-            validated_data['contact']}{validated_data['college_name']}{datetime.utcnow()}"
-        ticket_id = hashlib.sha256(unique_string.encode()).hexdigest()
-
-        # Create a user document
-        user_document = {
-            "email": validated_data['email'],
-            "password": hashed_password,
-            "contact": validated_data['contact'],
-            "name": validated_data['name'],
-            "college_name": validated_data['college_name'],
-            "timestamp": datetime.utcnow(),  # Store the current timestamp
-            "ticket_id": ticket_id  # Include the ticket_id
+        profile_details = validated_data.pop('profileDetails')
+        user_data = {
+            'email': validated_data['email'],
+            'firebaseUID': validated_data['firebaseUID'],
+            'profileDetails': {
+                'name': profile_details['name'],
+                'college': profile_details.get('college', ''),
+                'phoneNumber': profile_details.get('phoneNumber', ''),
+                'imageURL': profile_details.get('imageURL', ''),
+            },
+            'paymentStatus': validated_data['paymentStatus'],
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow()
         }
+        user_collection = db['users']
+        inserted_user = user_collection.insert_one(user_data)
+        return {**validated_data, '_id': str(inserted_user.inserted_id)}
 
-        # Insert user into MongoDB
-        db.users.insert_one(user_document)  # 'users' is the collection name
+    def validate_email(self, value):
+        user_collection = db['users']
+        existing_user = user_collection.find_one({'email': value})
+        if existing_user:
+            raise serializers.ValidationError(
+                "User with this email already exists.")
+        return value
 
-        return user_document  # Return the created user document
+    @staticmethod
+    def get_user_by_email(email):
+        user_collection = db['users']
+        user = user_collection.find_one({'email': email})
+        return user
+
+    @staticmethod
+    def get_user_by_id(user_id):
+        user_collection = db['users']
+        user = user_collection.find_one({'_id': ObjectId(user_id)})
+        return user
+
+
+class PaymentSerializer(serializers.Serializer):
+    # User ID of the person making the payment
+    userId = serializers.CharField(required=True)
+    amount = serializers.IntegerField(required=True)  # Payment amount
+    paymentMethod = serializers.CharField(required=True)  # Method of payment
+    status = serializers.CharField(required=True)  # Payment status
+    createdAt = serializers.DateTimeField(
+        required=True)  # Payment creation timestamp
+    updatedAt = serializers.DateTimeField(
+        required=True)  # Payment update timestamp
+    __v = serializers.IntegerField(required=False)  # Optional version field
