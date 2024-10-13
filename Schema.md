@@ -5,8 +5,8 @@
 
 ```json
 {
-    "email": "String",
-    "firebaseUID": "String",
+    "email": "String", // "required during reg"
+    "firebaseUID": "String", //"required" during reg
     "profileDetails": {
       "name": "String",
       "college": "String",
@@ -15,7 +15,7 @@
       "collegeID" : "String" ,
       "collegeIdUrl" : "String"
     },
-    "paymentStatus": true , false,  
+    "paymentStatus": true , false,  //default "false"
     "createdAt": "Date",
     "updatedAt": "Date"
 }
