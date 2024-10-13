@@ -48,6 +48,7 @@
     "userId": "ObjectId",  // Reference to user._id
     "qrUrl": "String",
     "code": "String", // code inside qr , usually userID itself
+    "vip": "Boolean"
     "createdAt": "Date",
     "updatedAt": "Date"
 }
