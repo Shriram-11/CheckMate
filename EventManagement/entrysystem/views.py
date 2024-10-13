@@ -24,6 +24,8 @@ def health_check(request):
 @api_view(['POST'])
 def register(request):
     serializer = UserSerializer(data=request.data)
+
+    # Validate the data
     if serializer.is_valid():
         email = request.data.get('email')
         user_collection = db['users']
@@ -32,12 +34,31 @@ def register(request):
         if existing_user:
             return Response({'sucess': False, 'message': 'User already exists'}, status=status.HTTP_409_CONFLICT)
 
+        # Create the user using the serializer's create method
         user_data = serializer.create(serializer.validated_data)
-        data = {'_id': str(user_data['_id'])}
-        return Response({'sucess': True, 'message': 'User created successfully', 'data': data}, status=status.HTTP_201_CREATED)
+
+        # Manually create JWT tokens
+        refresh = RefreshToken()
+        access_token = refresh.access_token
+
+        # Attach custom claims to the access token
+        access_token['email'] = user_data['email']
+        access_token['user_id'] = str(user_data['_id'])
+
+        # Prepare response data with JWT and user ID only
+        data = {
+            'user_id': str(user_data['_id']),
+            'refresh': str(refresh),
+            'access': str(access_token)
+        }
+
+        return Response({
+            'sucess': True,
+            'message': 'User created successfully',
+            'data': data
+        }, status=status.HTTP_201_CREATED)
 
     return Response({'sucess': False, 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
 # Login API
 
 
