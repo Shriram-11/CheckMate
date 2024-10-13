@@ -211,4 +211,107 @@
     }
     ```
 
+### 8. **QR Validation API**
+
+- **Endpoint**: `/api/entrysystem/validate_qr/`
+- **Method**: `POST`
+- **Description**: Validates a QR code for entry or exit, and checks the current entry status of the user associated with the QR code.
+
+- **Request Body**:
+  ```json
+  {
+    "qr_code": "670a1b65847c0d3f9c57b70c",
+    "mode": "entry"  // or "exit"
+  }
+  ```
+
+- **Response Examples**:
+
+1. **Successful Entry Approval**:
+   ```json
+   {
+     "success": true,
+     "message": "Entry approved",
+     "data": {
+       "name": "Ankita Sharma",
+       "vip": true
+     }
+   }
+   ```
+
+2. **Successful Exit Approval**:
+   ```json
+   {
+     "success": true,
+     "message": "Exit approved",
+     "data": {
+       "name": "Ankita Sharma",
+       "vip": true
+     }
+   }
+   ```
+
+3. **Duplicate Entry** (if user is already inside):
+   ```json
+   {
+     "success": false,
+     "message": "Duplicate entry detected"
+   }
+   ```
+
+4. **Duplicate Exit** (if user is already outside):
+   ```json
+   {
+     "success": false,
+     "message": "Duplicate exit detected"
+   }
+   ```
+
+5. **Invalid QR Code**:
+   ```json
+   {
+     "success": false,
+     "message": "QR code not found"
+   }
+   ```
+
+6. **Invalid Mode**:
+   ```json
+   {
+     "success": false,
+     "message": "Invalid mode"
+   }
+   ```
+
+7. **Missing `qr_code` or `mode` in Request**:
+   ```json
+   {
+     "success": false,
+     "message": "qr_code and mode are required"
+   }
+   ```
+
+8. **User Not Found**:
+   ```json
+   {
+     "success": false,
+     "message": "User not found"
+   }
+   ```
+
+9. **Entry/Exit Data Not Found**:
+   ```json
+   {
+     "success": false,
+     "message": "Entry/Exit data not found"
+   }
+   ```
+
+10. **Internal Server Error**:
+    ```json
+    {
+      "success": false,
+      "message": "An error occurred while processing the request"
+    }
+    ```
 ---
