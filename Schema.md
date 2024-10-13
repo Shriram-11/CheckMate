@@ -29,8 +29,8 @@
 {
     "userId": "ObjectId",  // Reference to user._id
     "amount": "Number",
-    "paymentMethod": "String",  // e.g., 'Credit Card', 'PayPal'
-    "status": "String",  // 'Pending', 'Completed', or 'Failed'
+    "paymentMethod": "String", 
+    "status": "String",  
     "createdAt": "Date" ,
     "updatedAt": "Date"
 
