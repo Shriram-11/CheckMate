@@ -8,6 +8,8 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from datetime import datetime
 from rest_framework.permissions import IsAuthenticated
 import logging
+import random
+from datetime import datetime
 # MongoDB Configuration
 MONGO_URI = "mongodb+srv://nshriram1326:vxdQ7yYDz74A9TMR@cluster0.usl45.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 client = MongoClient(MONGO_URI)
@@ -208,3 +210,83 @@ def profile_checker(request):
 
     except Exception as e:
         return Response({'success': False, 'Message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def validate_qr(request):
+    try:
+        qr_code = request.data.get('qr_code')
+        mode = request.data.get('mode')
+
+        if not qr_code or not mode:
+            return Response({'success': False, 'message': 'qr_code and mode are required'}, status=400)
+
+        # Find the QR code in the 'qrdatas' collection
+        qr_collection = db['qrdatas']
+        qr_data = qr_collection.find_one({'code': qr_code})
+
+        if not qr_data:
+            return Response({'success': False, 'message': 'QR code not found'}, status=404)
+
+        # Find the user associated with the QR code
+        user_collection = db['users']
+        user_data = user_collection.find_one(
+            {'_id': ObjectId(qr_data['userId'])})
+
+        if not user_data:
+            return Response({'success': False, 'message': 'User not found'}, status=404)
+
+        # Check if user is VIP
+        is_vip = qr_data.get('vip', False)
+
+        # Check entry/exit status from the 'entryexit' collection
+        entry_exit_collection = db['entryexits']
+        entry_exit_data = entry_exit_collection.find_one(
+            {'userId': qr_data['userId']})
+
+        if not entry_exit_data:
+            return Response({'success': False, 'message': 'Entry/Exit data not found'}, status=404)
+
+        current_status = entry_exit_data.get('currentStatus')
+
+        # Handle "entry" mode
+        if mode == 'entry':
+            if current_status:
+                # If already inside, flag as duplicate entry
+                return Response({'success': False, 'message': 'Duplicate entry detected'}, status=200)
+            else:
+                # Update to mark entry
+                entry_exit_collection.update_one(
+                    {'_id': entry_exit_data['_id']},
+                    {'$set': {'currentStatus': True, 'updatedAt': datetime.now()},
+                     '$inc': {'frequencyEntry': 1}}
+                )
+                return Response({
+                    'success': True,
+                    'message': 'Entry approved',
+                    'data': {'name': user_data['profileDetails']['name'], 'vip': is_vip}
+                }, status=200)
+
+        # Handle "exit" mode
+        elif mode == 'exit':
+            if not current_status:
+                # If already outside, flag as duplicate exit
+                return Response({'success': False, 'message': 'Duplicate exit detected'}, status=200)
+            else:
+                # Update to mark exit
+                entry_exit_collection.update_one(
+                    {'_id': entry_exit_data['_id']},
+                    {'$set': {'currentStatus': False, 'updatedAt': datetime.now()},
+                     '$inc': {'frequencyExit': 1}}
+                )
+                return Response({
+                    'success': True,
+                    'message': 'Exit approved',
+                    'data': {'name': user_data['profileDetails']['name'], 'vip': is_vip}
+                }, status=200)
+
+        else:
+            return Response({'success': False, 'message': 'Invalid mode'}, status=400)
+
+    except Exception as e:
+        return Response({'success': False, 'message': str(e)}, status=500)
