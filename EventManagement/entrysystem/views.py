@@ -47,7 +47,6 @@ def register(request):
 
         # Prepare response data with JWT and user ID only
         data = {
-            'user_id': str(user_data['_id']),
             'refresh': str(refresh),
             'access': str(access_token)
         }
