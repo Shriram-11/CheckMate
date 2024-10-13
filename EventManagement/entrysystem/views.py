@@ -212,7 +212,7 @@ def profile_checker(request):
         return Response({'success': False, 'Message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 def validate_qr(request):
     try:
         qr_code = request.data.get('qr_code')
