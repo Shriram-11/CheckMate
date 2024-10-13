@@ -15,6 +15,8 @@ class ProfileDetailsSerializer(serializers.Serializer):
     college = serializers.CharField(required=False, allow_blank=True)
     phoneNumber = serializers.CharField(required=False, allow_blank=True)
     imageURL = serializers.URLField(required=False, allow_blank=True)
+    collegeID = serializers.CharField(required=False, allow_blank=True)
+    collegeIdUrl = serializers.URLField(required=False, allow_blank=True)
 
 
 class UserSerializer(serializers.Serializer):
@@ -34,6 +36,8 @@ class UserSerializer(serializers.Serializer):
                 'college': profile_details.get('college', ''),
                 'phoneNumber': profile_details.get('phoneNumber', ''),
                 'imageURL': profile_details.get('imageURL', ''),
+                'collegeID': profile_details.get('collegeID', ''),
+                'collegeIdUrl': profile_details.get('collegeIdUrl', '')
             },
             'paymentStatus': validated_data['paymentStatus'],
             'created_at': datetime.utcnow(),

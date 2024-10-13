@@ -28,12 +28,13 @@ def register(request):
         existing_user = user_collection.find_one({'email': email})
 
         if existing_user:
-            return Response({'error': 'User already exists'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'sucess': False, 'message': 'User already exists'}, status=status.HTTP_409_CONFLICT)
 
         user_data = serializer.create(serializer.validated_data)
-        return Response({'message': 'User created successfully', '_id': str(user_data['_id'])}, status=status.HTTP_201_CREATED)
+        data = {'_id': str(user_data['_id'])}
+        return Response({'sucess': True, 'message': 'User created successfully', 'data': data}, status=status.HTTP_201_CREATED)
 
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response({'sucess': False, 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 # Login API
 
@@ -44,7 +45,7 @@ def login(request):
     firebaseUID = request.data.get('firebaseUID')
 
     if not email or not firebaseUID:
-        return Response({'error': 'Email and Firebase UID are required'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'sucess': False, 'message': 'Email and Firebase UID are required'}, status=status.HTTP_400_BAD_REQUEST)
 
     # Fetch user data from MongoDB using UserSerializer
     user_data = UserSerializer.get_user_by_email(email)
@@ -58,14 +59,14 @@ def login(request):
         access_token['email'] = user_data['email']
         access_token['name'] = user_data['profileDetails']['name']
         access_token['user_id'] = str(user_data['_id'])
-
+        data = {'refresh': str(refresh), 'access': str(access_token)}
         return Response({
-            'refresh': str(refresh),
-            'access': str(access_token),
-            'message': 'Login successful'
+            'sucess': True,
+            'message': 'Login successful',
+            'data': data
         }, status=status.HTTP_200_OK)
 
-    return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({'sucess': False, 'message': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # Configure logging
@@ -88,7 +89,7 @@ def payments(request):
         user = user_collection.find_one({'_id': user_id})
 
         if not user:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'sucess': False, 'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
         # Prepare payment data
         data = request.data.copy()
@@ -123,9 +124,9 @@ def payments(request):
             else:
                 logging.warning(f"User {user_id} paymentStatus update failed.")
 
-            return Response({'message': 'Payment successfully processed'}, status=status.HTTP_200_OK)
+            return Response({'sucess': True, 'message': 'Payment successfully processed'}, status=status.HTTP_200_OK)
 
-        return Response({'error': 'Invalid payment status'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'sucess': False, 'message': 'Invalid payment status'}, status=status.HTTP_400_BAD_REQUEST)
 
     except Exception as e:
         logging.error(f"Error processing payment: {str(e)}")
@@ -135,11 +136,13 @@ def payments(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def check_jwt(request):
-    user = request.user  # This should be a CustomUser instance
+    user = request.user
+    # This should be a CustomUser instance
+    data = {'user_id': user._id, 'email': user.email, }
     return Response({
-        'user_id': user._id,  # Access the user ID attribute directly
-        'email': user.email,
-        'name': user.profile_details['name'],  # Access nested profile details
+        'sucess': True,
+        'message': 'JWT is valid',
+        'data': data
     })
 
 
@@ -151,9 +154,9 @@ def profile(request):
     data = user_collection.find_one({'_id': ObjectId(user_id)})
 
     if not data:
-        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'success': False, 'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
     user_serializer = UserSerializer(data)
-    return Response(user_serializer.data, status=status.HTTP_200_OK)
+    return Response({'success': True, 'message': 'Data Found', 'data': user_serializer.data}, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
@@ -172,12 +175,12 @@ def profile_checker(request):
         user_data = user_collection.find_one({'_id': user_id})
 
         if not user_data:
-            return Response({'success': False, 'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'success': False, 'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
         # Check if required fields are filled
         profile = user_data.get('profileDetails', {})
         required_fields = ['email', 'profileDetails.name',
-                           'profileDetails.phoneNumber', 'profileDetails.imageURL']
+                           'profileDetails.phoneNumber', 'profileDetails.imageURL', 'profileDetails.college', 'profileDetails.collegeID', 'profileDetails.collegeIdUrl']
         missing_fields = []
 
         # Check if these fields are present and not empty
@@ -189,13 +192,19 @@ def profile_checker(request):
             missing_fields.append('profileDetails.phoneNumber')
         if not profile.get('imageURL'):
             missing_fields.append('profileDetails.imageURL')
+        if not profile.get('college'):
+            missing_fields.append('profileDetails.college')
+        if not profile.get('collegeID'):
+            missing_fields.append('profileDetails.collegeID')
+        if not profile.get('collegeIdUrl'):
+            missing_fields.append('profileDetails.collegeIdUrl')
 
         # Check if profile is complete
         if missing_fields:
-            return Response({'success': False, 'missing_fields': missing_fields}, status=status.HTTP_200_OK)
+            return Response({'success': False, 'message': 'Following Fields are missing', 'data': missing_fields}, status=status.HTTP_200_OK)
 
         # If all fields are filled
-        return Response({'success': True}, status=status.HTTP_200_OK)
+        return Response({'success': True, 'message': 'Profile Complete'}, status=status.HTTP_200_OK)
 
     except Exception as e:
-        return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'success': False, 'Message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
