@@ -118,8 +118,7 @@ def payments(request):
                 logging.info(
                     f"User {user_id} paymentStatus updated successfully.")
             else:
-                logging.warning(f"User {user_id} paymentStatus update failed. Matched: {
-                                update_result.matched_count}, Modified: {update_result.modified_count}")
+                logging.warning(f"User {user_id} paymentStatus update failed.")
 
             return Response({'message': 'Payment successfully processed'}, status=status.HTTP_200_OK)
 
