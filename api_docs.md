@@ -10,8 +10,17 @@
 - **Request Body**:
   ```json
   {
-    "email": "user@example.com",
-    "firebaseUID": "UID1234567890"
+    "email": "student@example.com",
+    "firebaseUID": "uniqueFirebaseUID123",
+    "profileDetails": {
+      "name": "John Doe",
+      "college": "ABC University",
+      "phoneNumber": "1234567890",
+      "imageURL": "http://example.com/image.jpg",
+      "collegeID": "COL12345",
+      "collegeIdUrl": "http://example.com/college-id.jpg"
+    },
+    "paymentStatus": true
   }
   ```
 - **Response**:
@@ -185,6 +194,20 @@
     {
       "success": false,
       "error": "User not found"
+    }
+    ```
+
+### 7. **Profile Completeness Check API**
+
+- **Endpoint**: `/api/entrysystem/health_check/`
+- **Method**: `GET`
+- **Permission**: None
+- **Description**: Checks the health of the API.
+- **Response**:
+  - **Complete Profile**:
+    ```json
+    {
+      "message": "API is running"
     }
     ```
 

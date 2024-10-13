@@ -13,7 +13,10 @@ MONGO_URI = "mongodb+srv://nshriram1326:vxdQ7yYDz74A9TMR@cluster0.usl45.mongodb.
 client = MongoClient(MONGO_URI)
 db = client.checkmate
 
-# Signup API
+
+@api_view(['GET'])
+def health_check(request):
+    return Response({'message': 'API is running'}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
