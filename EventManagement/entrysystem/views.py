@@ -233,7 +233,7 @@ def profile_checker(request):
 
 
 # Changed to POST since you're passing data in the request body
-@api_view(['POST'])
+@api_view(['GET'])
 def validate_qr(request):
     try:
         qr_code = request.data.get('qr_code')
@@ -380,4 +380,98 @@ def analytics(request):
         }, status=200)
 
     except Exception as e:
+        return Response({'success': False, 'message': str(e)}, status=500)
+
+
+# Function to check if the current timestamp falls on the same day
+def is_same_day(timestamp1, timestamp2):
+    return timestamp1.date() == timestamp2.date()
+
+
+@api_view(['GET'])
+def validate_qr_new(request):
+    try:
+        qr_code = request.data.get('qr_code')
+        mode = request.data.get('mode')
+
+        if not qr_code or not mode:
+            return Response({'success': False, 'message': 'qr_code and mode are required'}, status=400)
+
+        # Convert the qr_code (string) to ObjectId to match with userId in 'qrdatas'
+        try:
+            qr_code_obj = ObjectId(qr_code)
+        except:
+            return Response({'success': False, 'message': 'Invalid qr_code format'}, status=400)
+
+        # Find the QR data using userId in the 'qrdatas' collection
+        qr_collection = db['qrdatas']
+        qr_data = qr_collection.find_one({'userId': qr_code_obj})
+
+        if not qr_data:
+            return Response({'success': False, 'message': 'QR code not found'}, status=404)
+
+        # Find the user associated with the QR code
+        user_collection = db['users']
+        user_data = user_collection.find_one({'_id': qr_code_obj})
+
+        if not user_data:
+            return Response({'success': False, 'message': 'User not found'}, status=404)
+
+        # Check if user is VIP
+        is_vip = qr_data.get('vip', False)
+
+        # Check entry/exit status from the 'entryexits' collection
+        entry_exit_collection = db['entryexits']
+        entry_exit_data = entry_exit_collection.find_one(
+            {'userId': qr_code_obj})
+
+        if not entry_exit_data:
+            return Response({'success': False, 'message': 'Entry/Exit data not found'}, status=404)
+
+        current_status = entry_exit_data.get('currentStatus')
+        current_frequency = entry_exit_data.get('frequencyEntry', 0)
+
+        # Handle "entry" mode
+        if mode == 'entry':
+            # Check if the user is non-VIP and has reached the entry limit
+            if not is_vip:
+                if current_frequency > 3:
+                    return Response({'success': False, 'message': 'Entry limit reached for today'}, status=403)
+
+            if current_status:
+                return Response({'success': False, 'message': 'Duplicate entry detected'}, status=200)
+            else:
+                # Increment frequency and mark as entry
+                entry_exit_collection.update_one(
+                    {'_id': entry_exit_data['_id']},
+                    {'$set': {'currentStatus': True, 'updatedAt': datetime.now()},
+                     '$inc': {'frequencyEntry': 1}}
+                )
+                return Response({
+                    'success': True,
+                    'message': 'Entry approved',
+                    'data': {'name': user_data['profileDetails']['name'], 'vip': is_vip}
+                }, status=200)
+
+        # Handle "exit" mode
+        elif mode == 'exit':
+            if not current_status:
+                return Response({'success': False, 'message': 'Duplicate exit detected'}, status=200)
+            else:
+                entry_exit_collection.update_one(
+                    {'_id': entry_exit_data['_id']},
+                    {'$set': {'currentStatus': False, 'updatedAt': datetime.now()},
+                     '$inc': {'frequencyExit': 1}}
+                )
+                return Response({
+                    'success': True,
+                    'message': 'Exit approved',
+                    'data': {'name': user_data['profileDetails']['name'], 'vip': is_vip}
+                }, status=200)
+
+        else:
+            return Response({'success': False, 'message': 'Invalid mode'}, status=400)
+
+    except Exception as e:
+        print(f"Exception: {str(e)}")
         return Response({'success': False, 'message': str(e)}, status=500)
