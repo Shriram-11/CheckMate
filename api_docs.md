@@ -218,16 +218,18 @@
 - **Description**: Validates a QR code for entry or exit, and checks the current entry status of the user associated with the QR code.
 
 - **Request Body**:
+
   ```json
   {
     "qr_code": "670a1b65847c0d3f9c57b70c",
-    "mode": "entry"  // or "exit"
+    "mode": "entry" // or "exit"
   }
   ```
 
 - **Response Examples**:
 
 1. **Successful Entry Approval**:
+
    ```json
    {
      "success": true,
@@ -240,6 +242,7 @@
    ```
 
 2. **Successful Exit Approval**:
+
    ```json
    {
      "success": true,
@@ -252,6 +255,7 @@
    ```
 
 3. **Duplicate Entry** (if user is already inside):
+
    ```json
    {
      "success": false,
@@ -260,6 +264,7 @@
    ```
 
 4. **Duplicate Exit** (if user is already outside):
+
    ```json
    {
      "success": false,
@@ -268,6 +273,7 @@
    ```
 
 5. **Invalid QR Code**:
+
    ```json
    {
      "success": false,
@@ -276,6 +282,7 @@
    ```
 
 6. **Invalid Mode**:
+
    ```json
    {
      "success": false,
@@ -284,6 +291,7 @@
    ```
 
 7. **Missing `qr_code` or `mode` in Request**:
+
    ```json
    {
      "success": false,
@@ -292,6 +300,7 @@
    ```
 
 8. **User Not Found**:
+
    ```json
    {
      "success": false,
@@ -300,6 +309,7 @@
    ```
 
 9. **Entry/Exit Data Not Found**:
+
    ```json
    {
      "success": false,
@@ -314,4 +324,43 @@
       "message": "An error occurred while processing the request"
     }
     ```
+
+### 9. **Entry System Analytics API**
+
+- **Endpoint**: `/api/entrysystem/analytics/`
+- **Method**: `GET`
+- **Permission**: Admin
+- **Description**: Provides analytics data for the entry system, including the total number of users, counts of users inside campus and concert hall, and the breakdown by roles (students, VIPs, faculty), including paid students.
+
+- **Response**:
+
+  - **Successful Response**:
+
+    ```json
+    {
+      "success": true,
+      "message": "Analytics data fetched successfully",
+      "data": {
+        "total_users": 1000,
+        "inside_campus": 500,
+        "inside_concert_hall": 200,
+        "students_count": 700,
+        "vips_count": 50,
+        "faculty_count": 150,
+        "paid_students_count": 600,
+        "students_inside_concert_hall": 150,
+        "vips_inside_concert_hall": 30,
+        "faculty_inside_concert_hall": 20
+      }
+    }
+    ```
+
+  - **Error Response**:
+    ```json
+    {
+      "success": false,
+      "message": "Error message here"
+    }
+    ```
+
 ---

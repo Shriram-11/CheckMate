@@ -243,7 +243,7 @@ def validate_qr(request):
 
         # Find the QR code in the 'qrdatas' collection
         qr_collection = db['qrdatas']
-        qr_data = qr_collection.find_one({'code': qr_code})
+        qr_data = qr_collection.find_one({'userID': ObjectId(qr_code)})
 
         if not qr_data:
             return Response({'success': False, 'message': 'QR code not found'}, status=404)
@@ -307,6 +307,98 @@ def validate_qr(request):
 
         else:
             return Response({'success': False, 'message': 'Invalid mode'}, status=400)
+
+    except Exception as e:
+        return Response({'success': False, 'message': str(e)}, status=500)
+
+
+@api_view(['GET'])
+def analytics(request):
+    try:
+        # Fetch all the user data
+        user_collection = db['users']
+        users = list(user_collection.find())
+
+        # fetch how many users are inside campus (number of people whose main gate is true)
+        # fetch how many users are inside concert hall (number of people whose currentStatus is true)
+
+        # number of students
+        # number of vips
+        # number of faculty
+
+        # Prepare analytics data
+        total_users = len(users)
+
+        return Response({
+            'success': True,
+            'message': 'Analytics data fetched successfully',
+            'data': {
+                'total_users': total_users,
+            }
+        }, status=200)
+
+    except Exception as e:
+        return Response({'success': False, 'message': str(e)}, status=500)
+
+
+@api_view(['GET'])
+def analytics(request):
+    try:
+        # Count total users
+        total_users = db['users'].count_documents({})
+
+        # Number of users inside campus (mainGate: true)
+        inside_campus = db['entryexits'].count_documents({'mainGate': True})
+
+        # Number of users inside concert hall (currentStatus: true)
+        inside_concert_hall = db['entryexits'].count_documents(
+            {'currentStatus': True})
+
+        # Number of students (role = 0)
+        students_count = db['users'].count_documents({'role': 0})
+
+        # Number of VIPs (role = 1)
+        vips_count = db['users'].count_documents({'role': 1})
+
+        # Number of faculty (role = 2)
+        faculty_count = db['users'].count_documents({'role': 2})
+
+        # Number of students who have paid (paymentStatus: true and role: 0)
+        paid_students_count = db['users'].count_documents(
+            {'role': 0, 'paymentStatus': True})
+
+        # Students inside concert hall (role = 0 and currentStatus: true)
+        students_inside_concert_hall = db['entryexits'].count_documents(
+            {'currentStatus': True, 'userId': {'$in': [user['_id'] for user in db['users'].find({'role': 0})]}})
+
+        # VIPs inside concert hall (role = 1 and currentStatus: true)
+        vips_inside_concert_hall = db['entryexits'].count_documents(
+            {'currentStatus': True, 'userId': {'$in': [user['_id'] for user in db['users'].find({'role': 1})]}})
+
+        # Faculty inside concert hall (role = 2 and currentStatus: true)
+        faculty_inside_concert_hall = db['entryexits'].count_documents(
+            {'currentStatus': True, 'userId': {'$in': [user['_id'] for user in db['users'].find({'role': 2})]}})
+
+        # Prepare analytics data
+        analytics_data = {
+            'total_users': total_users,
+            'inside_campus': inside_campus,
+            'inside_concert_hall': inside_concert_hall,
+            'students_count': students_count,
+            'vips_count': vips_count,
+            'faculty_count': faculty_count,
+            'paid_students_count': paid_students_count,
+            'students_inside_concert_hall': students_inside_concert_hall,
+            'vips_inside_concert_hall': vips_inside_concert_hall,
+            'faculty_inside_concert_hall': faculty_inside_concert_hall
+
+        }
+
+        return Response({
+            'success': True,
+            'message': 'Analytics data fetched successfully',
+            'data': analytics_data
+        }, status=200)
 
     except Exception as e:
         return Response({'success': False, 'message': str(e)}, status=500)

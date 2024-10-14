@@ -23,6 +23,7 @@ class UserSerializer(serializers.Serializer):
     _id = serializers.CharField(read_only=True)  # MongoDB's _id as read-only
     email = serializers.EmailField(required=True)
     firebaseUID = serializers.CharField(required=True, max_length=100)
+    role = serializers.CharField(required=True)
     profileDetails = ProfileDetailsSerializer(required=True)
     paymentStatus = serializers.BooleanField(default=False)
 
