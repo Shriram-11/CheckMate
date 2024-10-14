@@ -232,98 +232,13 @@ def profile_checker(request):
         return Response({'success': False, 'Message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# Changed to POST since you're passing data in the request body
-@api_view(['POST'])
-def validate_qr(request):
-    try:
-        qr_code = request.data.get('qr_code')
-        mode = request.data.get('mode')
-
-        if not qr_code or not mode:
-            return Response({'success': False, 'message': 'qr_code and mode are required'}, status=400)
-
-        # Convert the qr_code (string) to ObjectId to match with userId in 'qrdatas'
-        try:
-            qr_code_obj = ObjectId(qr_code)
-            print(f"Converted qr_code to ObjectId: {qr_code_obj}")
-        except:
-            return Response({'success': False, 'message': 'Invalid qr_code format'}, status=400)
-
-        # Find the QR data using userId in the 'qrdatas' collection
-        qr_collection = db['qrdatas']
-        qr_data = qr_collection.find_one({'userId': qr_code_obj})
-
-        if not qr_data:
-            return Response({'success': False, 'message': 'QR code not found'}, status=404)
-
-        # Find the user associated with the QR code
-        user_collection = db['users']
-        user_data = user_collection.find_one({'_id': qr_code_obj})
-
-        if not user_data:
-            return Response({'success': False, 'message': 'User not found'}, status=404)
-
-        # Check if user is VIP
-        is_vip = qr_data.get('vip', False)
-
-        # Check entry/exit status from the 'entryexits' collection
-        entry_exit_collection = db['entryexits']
-        entry_exit_data = entry_exit_collection.find_one(
-            {'userId': qr_code_obj})
-
-        if not entry_exit_data:
-            return Response({'success': False, 'message': 'Entry/Exit data not found'}, status=404)
-
-        current_status = entry_exit_data.get('currentStatus')
-
-        # Handle "entry" mode
-        if mode == 'entry':
-            if current_status:
-                # If already inside, flag as duplicate entry
-                return Response({'success': False, 'message': 'Duplicate entry detected'}, status=200)
-            else:
-                # Update to mark entry
-                entry_exit_collection.update_one(
-                    {'_id': entry_exit_data['_id']},
-                    {'$set': {'currentStatus': True, 'updatedAt': datetime.now()},
-                     '$inc': {'frequencyEntry': 1}}
-                )
-                return Response({
-                    'success': True,
-                    'message': 'Entry approved',
-                    'data': {'name': user_data['profileDetails']['name'], 'vip': is_vip}
-                }, status=200)
-
-        # Handle "exit" mode
-        elif mode == 'exit':
-            if not current_status:
-                # If already outside, flag as duplicate exit
-                return Response({'success': False, 'message': 'Duplicate exit detected'}, status=200)
-            else:
-                # Update to mark exit
-                entry_exit_collection.update_one(
-                    {'_id': entry_exit_data['_id']},
-                    {'$set': {'currentStatus': False, 'updatedAt': datetime.now()},
-                     '$inc': {'frequencyExit': 1}}
-                )
-                return Response({
-                    'success': True,
-                    'message': 'Exit approved',
-                    'data': {'name': user_data['profileDetails']['name'], 'vip': is_vip}
-                }, status=200)
-
-        else:
-            return Response({'success': False, 'message': 'Invalid mode'}, status=400)
-
-    except Exception as e:
-        print(f"Exception: {str(e)}")
-        return Response({'success': False, 'message': str(e)}, status=500)
-
-
 @api_view(['GET'])
 def analytics(request):
     try:
         # Count total users
+        total_duplicates = db['duplicate_counter'].find_one(
+            {'_id': ObjectId("670d5923251b9fb1f36619d7")})['total']
+
         total_users = db['users'].count_documents({})
 
         # Number of users inside campus (mainGate: true)
@@ -360,6 +275,7 @@ def analytics(request):
 
         # Prepare analytics data
         analytics_data = {
+            'total_duplicates': total_duplicates,
             'total_users': total_users,
             'inside_campus': inside_campus,
             'inside_concert_hall': inside_concert_hall,
@@ -388,9 +304,11 @@ def is_same_day(timestamp1, timestamp2):
     return timestamp1.date() == timestamp2.date()
 
 
-@api_view(['GET'])
-def validate_qr_new(request):
+@api_view(['POST'])
+def validate_qr(request):
     try:
+        # ObjectId of the duplicate_counter document
+        duplicate_counter_id = ObjectId("670d5923251b9fb1f36619d7")
         qr_code = request.data.get('qr_code')
         mode = request.data.get('mode')
 
@@ -401,6 +319,8 @@ def validate_qr_new(request):
         try:
             qr_code_obj = ObjectId(qr_code)
         except:
+            db['duplicate_counter'].update_one(
+                {'_id': duplicate_counter_id}, {'$inc': {'total': 1}})
             return Response({'success': False, 'message': 'Invalid qr_code format'}, status=400)
 
         # Find the QR data using userId in the 'qrdatas' collection
@@ -415,6 +335,8 @@ def validate_qr_new(request):
         user_data = user_collection.find_one({'_id': qr_code_obj})
 
         if not user_data:
+            db['duplicate_counter'].update_one(
+                {'_id': duplicate_counter_id}, {'$inc': {'total': 1}})
             return Response({'success': False, 'message': 'User not found'}, status=404)
 
         # Check if user is VIP
@@ -439,6 +361,8 @@ def validate_qr_new(request):
                     return Response({'success': False, 'message': 'Entry limit reached for today'}, status=403)
 
             if current_status:
+                db['duplicate_counter'].update_one(
+                    {'_id': duplicate_counter_id}, {'$inc': {'total': 1}})
                 return Response({'success': False, 'message': 'Duplicate entry detected'}, status=200)
             else:
                 # Increment frequency and mark as entry
@@ -456,6 +380,8 @@ def validate_qr_new(request):
         # Handle "exit" mode
         elif mode == 'exit':
             if not current_status:
+                db['duplicate_counter'].update_one(
+                    {'_id': duplicate_counter_id}, {'$inc': {'total': 1}})
                 return Response({'success': False, 'message': 'Duplicate exit detected'}, status=200)
             else:
                 entry_exit_collection.update_one(
@@ -474,4 +400,62 @@ def validate_qr_new(request):
 
     except Exception as e:
         print(f"Exception: {str(e)}")
+        return Response({'success': False, 'message': str(e)}, status=500)
+
+
+@api_view(['POST'])
+def validate_dynamic_qr(request):
+    try:
+        qr_code = request.data.get('qr_code')
+        mode = request.data.get('mode')
+        number = int(request.data.get('number', 0))
+
+        if not qr_code or not mode or number <= 0:
+            return Response({'success': False, 'message': 'qr_code, mode, and valid number are required'}, status=400)
+
+        # Fetch the dynamic QR data
+        dynamic_qr_collection = db['dynamicqrs']
+        dynamic_qr_data = dynamic_qr_collection.find_one(
+            {'_id': ObjectId(qr_code)})
+
+        if not dynamic_qr_data:
+            return Response({'success': False, 'message': 'Dynamic QR code not found'}, status=404)
+
+        total_ppl = dynamic_qr_data.get('numberofppl', 0)
+        entered_ppl = dynamic_qr_data.get('ppl', 0)
+
+        if mode == 'entry':
+            if entered_ppl + number > total_ppl:
+                # Duplicate entry case
+                duplicates_collection = db['duplicates_counter']
+                duplicates_collection.update_one({}, {'$inc': {'total': 1}})
+                return Response({'success': False, 'message': 'Duplicate entry detected'}, status=200)
+            else:
+                # Update the entered people count
+                dynamic_qr_collection.update_one(
+                    {'_id': ObjectId(qr_code)},
+                    {'$inc': {'ppl': number}, '$set': {
+                        'updatedAt': datetime.now()}}
+                )
+                data = {'entered_ppl': number, "vip": True}
+                return Response({'success': True, 'message': 'Entry approved', "data": data}, status=200)
+
+        elif mode == 'exit':
+            if entered_ppl - number < 0:
+                # Duplicate exit case
+                duplicates_collection = db['duplicates_counter']
+                duplicates_collection.update_one({}, {'$inc': {'total': 1}})
+                return Response({'success': False, 'message': 'Duplicate exit detected'}, status=200)
+            else:
+                # Update the entered people count
+                dynamic_qr_collection.update_one(
+                    {'_id': ObjectId(qr_code)},
+                    {'$inc': {'ppl': -number}, '$set': {'updatedAt': datetime.now()}}
+                )
+                data = {'exited ppl': number, "vip": True}
+                return Response({'success': True, 'message': 'Exit approved', "data": data}, status=200)
+        else:
+            return Response({'success': False, 'message': 'Invalid mode'}, status=400)
+
+    except Exception as e:
         return Response({'success': False, 'message': str(e)}, status=500)

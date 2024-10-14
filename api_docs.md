@@ -2,7 +2,21 @@
 
 ---
 
-### 1. **User Registration API**
+### 1. **Health Check API**
+
+- **Endpoint**: `/api/entrysystem/health_check/`
+- **Method**: `GET`
+- **Permission**: None
+- **Description**: Verifies if the API service is running.
+- **Response**:
+  - **Success**:
+    ```json
+    {
+      "message": "API is running"
+    }
+    ```
+
+### 2. **User Registration API**
 
 - **Endpoint**: `/api/entrysystem/register/`
 - **Method**: `POST`
@@ -360,6 +374,41 @@
     {
       "success": false,
       "message": "Error message here"
+    }
+    ```
+
+### 10. **Dynamic QR Code Validation API**
+
+- **Endpoint**: `/api/entrysystem/validate_dynamic_qr/`
+- **Method**: `POST`
+- **Permission**: None
+- **Description**: Validates a dynamic QR code for entry or exit with a number of people.
+- **Request**:
+  - **Body**:
+    ```json
+    {
+      "qr_code": "dynamic-qr-code-object-id",
+      "mode": "entry",
+      "number": 5
+    }
+    ```
+- **Response**:
+  - **Entry Approved**:
+    ```json
+    {
+      "success": true,
+      "message": "Entry approved",
+      "data": {
+        "entered_ppl": 1,
+        "vip": true
+      }
+    }
+    ```
+  - **Duplicate Entry**:
+    ```json
+    {
+      "success": false,
+      "message": "Duplicate entry detected"
     }
     ```
 

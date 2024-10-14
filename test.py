@@ -1,15 +1,25 @@
+import requests
+import time
 
-from pymongo.mongo_client import MongoClient
-from pymongo.server_api import ServerApi
+# Define the API endpoint
+url = "https://checkmate-lmc4.onrender.com/api/entrysystem/health_check/"
 
-uri = "mongodb+srv://nshriram1326:<password>@cluster0.usl45.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+# Function to check the health of the API
 
-# Create a new client and connect to the server
-client = MongoClient(uri, server_api=ServerApi('1'))
 
-# Send a ping to confirm a successful connection
-try:
-    client.admin.command('ping')
-    print("Pinged your deployment. You successfully connected to MongoDB!")
-except Exception as e:
-    print(e)
+def check_health():
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            print(f"API Response: {data['message']}")
+        else:
+            print(f"Failed to reach API. Status code: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+
+
+# Call the API every 30 seconds
+while True:
+    check_health()
+    time.sleep(50)  # wait for 30 seconds
