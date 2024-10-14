@@ -233,7 +233,7 @@ def profile_checker(request):
 
 
 # Changed to POST since you're passing data in the request body
-@api_view(['GET'])
+@api_view(['POST'])
 def validate_qr(request):
     try:
         qr_code = request.data.get('qr_code')
