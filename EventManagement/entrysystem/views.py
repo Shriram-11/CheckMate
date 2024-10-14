@@ -232,7 +232,8 @@ def profile_checker(request):
         return Response({'success': False, 'Message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@api_view(['GET'])
+# Changed to POST since you're passing data in the request body
+@api_view(['POST'])
 def validate_qr(request):
     try:
         qr_code = request.data.get('qr_code')
@@ -241,17 +242,23 @@ def validate_qr(request):
         if not qr_code or not mode:
             return Response({'success': False, 'message': 'qr_code and mode are required'}, status=400)
 
-        # Find the QR code in the 'qrdatas' collection
+        # Convert the qr_code (string) to ObjectId to match with userId in 'qrdatas'
+        try:
+            qr_code_obj = ObjectId(qr_code)
+            print(f"Converted qr_code to ObjectId: {qr_code_obj}")
+        except:
+            return Response({'success': False, 'message': 'Invalid qr_code format'}, status=400)
+
+        # Find the QR data using userId in the 'qrdatas' collection
         qr_collection = db['qrdatas']
-        qr_data = qr_collection.find_one({'userID': ObjectId(qr_code)})
+        qr_data = qr_collection.find_one({'userId': qr_code_obj})
 
         if not qr_data:
             return Response({'success': False, 'message': 'QR code not found'}, status=404)
 
         # Find the user associated with the QR code
         user_collection = db['users']
-        user_data = user_collection.find_one(
-            {'_id': ObjectId(qr_data['userId'])})
+        user_data = user_collection.find_one({'_id': qr_code_obj})
 
         if not user_data:
             return Response({'success': False, 'message': 'User not found'}, status=404)
@@ -259,10 +266,10 @@ def validate_qr(request):
         # Check if user is VIP
         is_vip = qr_data.get('vip', False)
 
-        # Check entry/exit status from the 'entryexit' collection
+        # Check entry/exit status from the 'entryexits' collection
         entry_exit_collection = db['entryexits']
         entry_exit_data = entry_exit_collection.find_one(
-            {'userId': qr_data['userId']})
+            {'userId': qr_code_obj})
 
         if not entry_exit_data:
             return Response({'success': False, 'message': 'Entry/Exit data not found'}, status=404)
@@ -309,35 +316,7 @@ def validate_qr(request):
             return Response({'success': False, 'message': 'Invalid mode'}, status=400)
 
     except Exception as e:
-        return Response({'success': False, 'message': str(e)}, status=500)
-
-
-@api_view(['GET'])
-def analytics(request):
-    try:
-        # Fetch all the user data
-        user_collection = db['users']
-        users = list(user_collection.find())
-
-        # fetch how many users are inside campus (number of people whose main gate is true)
-        # fetch how many users are inside concert hall (number of people whose currentStatus is true)
-
-        # number of students
-        # number of vips
-        # number of faculty
-
-        # Prepare analytics data
-        total_users = len(users)
-
-        return Response({
-            'success': True,
-            'message': 'Analytics data fetched successfully',
-            'data': {
-                'total_users': total_users,
-            }
-        }, status=200)
-
-    except Exception as e:
+        print(f"Exception: {str(e)}")
         return Response({'success': False, 'message': str(e)}, status=500)
 
 
