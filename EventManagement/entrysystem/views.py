@@ -496,3 +496,24 @@ def freeze_operations(request):
 
     except Exception as e:
         return Response({'success': False, 'message': str(e)}, status=500)
+
+
+@api_view(['GET'])
+def get_flag(request):
+    try:
+        # Access the 'freeze' collection
+        freeze_collection = db['freeze']
+
+        # Fetch the freeze document using the Object ID
+        freeze_data = freeze_collection.find_one(
+            {'_id': ObjectId("670dfcc70ad8ed791c734852")})
+
+        if not freeze_data:
+            return Response({'success': False, 'message': 'Freeze data not found'}, status=404)
+
+        # Get the flag value from the request body
+        flag = freeze_data.get('flag')
+        return Response({'success': True, 'message': 'Flag fetched successfully', 'flag': flag}, status=200)
+
+    except Exception as e:
+        return Response({'success': False, 'message': str(e)}, status=500)
