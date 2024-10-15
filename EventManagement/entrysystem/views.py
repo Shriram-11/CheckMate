@@ -23,6 +23,12 @@ def health_check(request):
 
 @api_view(['POST'])
 def register(request):
+    freeze_data = db.freeze.find_one(
+        {'_id': ObjectId("670dfcc70ad8ed791c734852")}, {'flag': 1, '_id': 0})
+    # Default to False if 'flag' is not found
+    flag = freeze_data.get('flag', False)
+    if flag:
+        return Response({'sucess': False, 'message': 'All operations except read are not allowed'}, status=status.HTTP_400_BAD_REQUEST)
     serializer = UserSerializer(data=request.data)
 
     # Validate the data
@@ -456,6 +462,37 @@ def validate_dynamic_qr(request):
                 return Response({'success': True, 'message': 'Exit approved', "data": data}, status=200)
         else:
             return Response({'success': False, 'message': 'Invalid mode'}, status=400)
+
+    except Exception as e:
+        return Response({'success': False, 'message': str(e)}, status=500)
+
+
+@api_view(['POST'])
+def freeze_operations(request):
+    try:
+        # Access the 'freeze' collection
+        freeze_collection = db['freeze']
+
+        # Fetch the freeze document using the Object ID
+        freeze_data = freeze_collection.find_one(
+            {'_id': ObjectId("670dfcc70ad8ed791c734852")})
+
+        if not freeze_data:
+            return Response({'success': False, 'message': 'Freeze data not found'}, status=404)
+
+        # Get the flag value from the request body
+        f = request.data.get('flag')
+
+        # Check if the flag is either True or False
+        if f is not None and isinstance(f, bool):
+            # Update the flag value in the database
+            freeze_collection.update_one(
+                {'_id': ObjectId("670dfcc70ad8ed791c734852")},
+                {'$set': {'flag': f}}
+            )
+            return Response({'success': True, 'message': 'Flag updated successfully', 'flag': f}, status=200)
+        else:
+            return Response({'success': False, 'message': 'Invalid flag value'}, status=400)
 
     except Exception as e:
         return Response({'success': False, 'message': str(e)}, status=500)

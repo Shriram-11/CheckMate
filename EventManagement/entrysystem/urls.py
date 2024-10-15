@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import register, login, payments, check_jwt, profile, profile_checker, health_check, validate_qr, analytics, validate_dynamic_qr
+from .views import register, login, payments, check_jwt, profile, profile_checker, health_check, validate_qr, analytics, validate_dynamic_qr, freeze_operations
 
 urlpatterns = [
     path('register/', register, name='register'),
@@ -12,4 +12,5 @@ urlpatterns = [
     path('validate_qr/', validate_qr, name='validate_qr'),
     path('analytics/', analytics, name='analytics'),
     path('validate_dynamic_qr/', validate_dynamic_qr, name='validate_dynamic_qr'),
+    path('freeze_operations/', freeze_operations, name='freeze_operations'),
 ]
