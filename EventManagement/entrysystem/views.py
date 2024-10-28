@@ -380,7 +380,7 @@ def validate_qr(request):
             if current_status:
                 db['duplicate_counter'].update_one(
                     {'_id': duplicate_counter_id}, {'$inc': {'total': 1}})
-                return Response({'success': False, 'message': 'Duplicate entry detected'}, status=200)
+                return Response({'success': False, 'message': 'Duplicate entry detected'}, status=400)
             else:
                 # Increment frequency and mark as entry
                 entry_exit_collection.update_one(
@@ -463,7 +463,7 @@ def validate_dynamic_qr(request):
                 # Duplicate exit case
                 db['duplicate_counter'].update_one(
                     {'_id': duplicate_counter_id}, {'$inc': {'total': 1}})
-                return Response({'success': False, 'message': 'Duplicate exit detected'}, status=200)
+                return Response({'success': False, 'message': 'Duplicate exit detected'}, status=400)
             else:
                 # Update the entered people count
                 dynamic_qr_collection.update_one(
