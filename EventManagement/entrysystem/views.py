@@ -412,6 +412,7 @@ def validate_qr(request):
 @api_view(['POST'])
 def validate_dynamic_qr(request):
     try:
+        duplicate_counter_id = ObjectId("670d5923251b9fb1f36619d7")
         qr_code = request.data.get('qr_code')
         mode = request.data.get('mode')
         number = int(request.data.get('number', 0))
@@ -433,8 +434,8 @@ def validate_dynamic_qr(request):
         if mode == 'entry':
             if entered_ppl + number > total_ppl:
                 # Duplicate entry case
-                duplicates_collection = db['duplicates_counter']
-                duplicates_collection.update_one({}, {'$inc': {'total': 1}})
+                db['duplicate_counter'].update_one(
+                    {'_id': duplicate_counter_id}, {'$inc': {'total': 1}})
                 return Response({'success': False, 'message': 'Duplicate entry detected'}, status=200)
             else:
                 # Update the entered people count
@@ -449,8 +450,8 @@ def validate_dynamic_qr(request):
         elif mode == 'exit':
             if entered_ppl - number < 0:
                 # Duplicate exit case
-                duplicates_collection = db['duplicates_counter']
-                duplicates_collection.update_one({}, {'$inc': {'total': 1}})
+                db['duplicate_counter'].update_one(
+                    {'_id': duplicate_counter_id}, {'$inc': {'total': 1}})
                 return Response({'success': False, 'message': 'Duplicate exit detected'}, status=200)
             else:
                 # Update the entered people count

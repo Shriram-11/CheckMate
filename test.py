@@ -22,4 +22,4 @@ def check_health():
 # Call the API every 30 seconds
 while True:
     check_health()
-    time.sleep(50)  # wait for 30 seconds
+    time.sleep(60)  # wait for 30 seconds
