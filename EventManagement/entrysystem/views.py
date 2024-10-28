@@ -272,8 +272,19 @@ def analytics(request):
             {'currentStatus': True, 'userId': {'$in': [user['_id'] for user in db['users'].find({'role': 0})]}})
 
         # VIPs inside concert hall (role = 1 and currentStatus: true)
+        # Count documents with currentStatus True for specific userIds
         vips_inside_concert_hall = db['entryexits'].count_documents(
             {'currentStatus': True, 'userId': {'$in': [user['_id'] for user in db['users'].find({'role': 1})]}})
+
+        # Perform aggregation to get the total entered
+        aggregate_result = db['dynamicqrs'].aggregate(
+            [{"$group": {"_id": None, "totalEntered": {"$sum": "$ppl"}}}])
+
+        # Extract the totalEntered from the aggregate result
+        total_entered = next(aggregate_result, {}).get("totalEntered", 0)
+
+        # Add to the total count
+        vips_inside_concert_hall += total_entered
 
         # Faculty inside concert hall (role = 2 and currentStatus: true)
         faculty_inside_concert_hall = db['entryexits'].count_documents(
@@ -388,7 +399,7 @@ def validate_qr(request):
             if not current_status:
                 db['duplicate_counter'].update_one(
                     {'_id': duplicate_counter_id}, {'$inc': {'total': 1}})
-                return Response({'success': False, 'message': 'Duplicate exit detected'}, status=200)
+                return Response({'success': False, 'message': 'Duplicate exit detected'}, status=400)
             else:
                 entry_exit_collection.update_one(
                     {'_id': entry_exit_data['_id']},
@@ -436,7 +447,7 @@ def validate_dynamic_qr(request):
                 # Duplicate entry case
                 db['duplicate_counter'].update_one(
                     {'_id': duplicate_counter_id}, {'$inc': {'total': 1}})
-                return Response({'success': False, 'message': 'Duplicate entry detected'}, status=200)
+                return Response({'success': False, 'message': 'Duplicate entry detected'}, status=400)
             else:
                 # Update the entered people count
                 dynamic_qr_collection.update_one(
