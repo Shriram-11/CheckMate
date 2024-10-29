@@ -529,3 +529,18 @@ def get_flag(request):
 
     except Exception as e:
         return Response({'success': False, 'message': str(e)}, status=500)
+
+
+@api_view(['GET'])
+def get_profile(request):
+    user_id = request.data.get('user_id')
+    print(user_id)
+    user_id = ObjectId(user_id)
+    # Retrieve the user document from the 'users' collection
+    user_collection = db['users']
+    user_data = user_collection.find_one({'_id': user_id})
+
+    if not user_data:
+        return Response({'success': False, 'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    user_data['_id'] = str(user_data['_id'])
+    return Response({'success': True, 'message': 'User found', 'data': user_data}, status=status.HTTP_200_OK)
