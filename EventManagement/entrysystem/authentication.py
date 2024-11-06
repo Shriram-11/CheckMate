@@ -3,9 +3,10 @@ from rest_framework.exceptions import AuthenticationFailed
 from pymongo import MongoClient
 from bson import ObjectId
 from .serializers import UserSerializer  # Import the UserSerializer
-
-# MongoDB Configuration
-MONGO_URI = "mongodb+srv://nshriram1326:vxdQ7yYDz74A9TMR@cluster0.usl45.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+import os
+MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
+# MongoDB Cloud Configuration
+MONGO_URI = f"mongodb+srv://nshriram1326:{MONGO_PASSWORD}@cluster0.usl45.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 client = MongoClient(MONGO_URI)  # Use settings for MongoDB URI
 db = client.checkmate  # Your database name
 
