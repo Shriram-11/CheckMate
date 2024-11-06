@@ -10,8 +10,10 @@ from rest_framework.permissions import IsAuthenticated
 import logging
 import random
 from datetime import datetime
-# MongoDB Configuration
-MONGO_URI = "mongodb+srv://nshriram1326:vxdQ7yYDz74A9TMR@cluster0.usl45.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+import os
+MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
+# MongoDB Cloud Configuration
+MONGO_URI = f"mongodb+srv://nshriram1326:{MONGO_PASSWORD}@cluster0.usl45.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 client = MongoClient(MONGO_URI)
 db = client.checkmate
 
