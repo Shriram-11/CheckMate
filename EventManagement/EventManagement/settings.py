@@ -2,12 +2,12 @@ from datetime import timedelta
 from pathlib import Path
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
 # MongoDB Cloud Configuration
-MONGO_URI = "mongodb+srv://nshriram1326:vxdQ7yYDz74A9TMR@cluster0.usl45.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGO_URI = f"mongodb+srv://nshriram1326:{MONGO_PASSWORD}@cluster0.usl45.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 client = MongoClient(MONGO_URI, server_api=ServerApi('1'))
 
 # Send a ping to confirm a successful connection
